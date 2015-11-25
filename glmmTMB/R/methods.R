@@ -192,7 +192,8 @@ getME.glmmTMB <- function(object,
 logLik.glmmTMB <- function(object, ...) {
   val <- -object$fit$objective
   nobs <- nobs.glmmTMB(object)
-  structure(val, nobs = nobs, nall = nobs, df = length(object$fit$par),
+  nprof <- sum(object$obj$env$profile)
+  structure(val, nobs = nobs, nall = nobs, df = length(object$fit$par) + nprof,
             class = "logLik")
 }
 
@@ -211,7 +212,8 @@ nobs.glmmTMB <- function(object, ...) sum(!is.na(object$obj$env$data$yobs))
 ##  Taken from LME4, including the todo
 ##
 df.residual.glmmTMB <- function(object, ...) {
-  nobs(object)-length(object$fit$par)
+  nprof <- sum(object$obj$env$profile)
+  nobs(object) - (length(object$fit$par) + nprof)
 }
 
 

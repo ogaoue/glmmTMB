@@ -414,11 +414,18 @@ glmmTMB <- function (
     ## short-circuit
     if(debug) return(TMBStruc)
 
+    ## Move fixed effects to inner problem if safe
+    ## FIXME: Consider if more valid cases
+    profile <-
+        if (family    == "gaussian" &&
+            link      == "identity" &&
+            ziformula == ~0 )
+            "beta" else NULL
     obj <- with(TMBStruc,
                 MakeADFun(data.tmb,
                      parameters,
                      random = randomArg,
-                     profile = NULL, # TODO: Optionally "beta"
+                     profile = profile,
                      silent = !verbose,
                      DLL = "glmmTMB"))
 
