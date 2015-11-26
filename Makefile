@@ -54,13 +54,17 @@ install: $(TARBALL)
 	$(R) CMD INSTALL --preclean $<
 	@touch $@
 
+install-parallel: $(TARBALL)
+	PKG_CXXFLAGS=-fopenmp $(R) CMD INSTALL --preclean $<
+	@touch $@
+
 ## To enable quick compile, run from R:
 ##    library(TMB); precompile(flags="-O0 -g")
 quick-install: enum-update $(PACKAGE)/src/glmmTMB.so
 	$(R) CMD INSTALL $(PACKAGE)
 
 $(PACKAGE)/src/glmmTMB.so: $(PACKAGE)/src/glmmTMB.cpp
-	cd $(PACKAGE)/src; echo "library(TMB); compile('glmmTMB.cpp','-O0 -g')" | $(R) --slave
+	cd $(PACKAGE)/src; echo "library(TMB); compile('glmmTMB.cpp','-O0 -g',openmp=FALSE)" | $(R) --slave
 
 unexport TEXINPUTS
 pdf: $(PACKAGE).pdf

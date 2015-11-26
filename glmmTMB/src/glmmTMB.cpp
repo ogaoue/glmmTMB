@@ -1,5 +1,14 @@
 #include <TMB.hpp>
 
+/* Switch to parallel version if openmp flag set */
+#ifdef _OPENMP
+#define PARALLEL_INIT this->max_parallel_regions = omp_get_max_threads()
+#else
+#undef PARALLEL_REGION
+#define PARALLEL_REGION /* nothing */
+#define PARALLEL_INIT   /* nothing */
+#endif
+
 namespace glmmtmb{
   template<class Type>
   Type dbetabinom(Type y, Type a, Type b, Type n, int give_log=0)
@@ -235,6 +244,7 @@ Type allterms_nll(vector<Type> u, vector<Type> theta,
 template<class Type>
 Type objective_function<Type>::operator() ()
 {
+  PARALLEL_INIT;
   DATA_MATRIX(X);
   DATA_SPARSE_MATRIX(Z);
   DATA_MATRIX(Xzi);
@@ -273,8 +283,8 @@ Type objective_function<Type>::operator() ()
   Type jnll = 0;
 
   // Random effects
-  jnll += allterms_nll(b, theta, terms);
-  jnll += allterms_nll(bzi, thetazi, termszi);
+  PARALLEL_REGION jnll += allterms_nll(b, theta, terms);
+  PARALLEL_REGION jnll += allterms_nll(bzi, thetazi, termszi);
 
   // Linear predictor
   vector<Type> eta = X * beta + Z * b + offset;
@@ -292,6 +302,7 @@ Type objective_function<Type>::operator() ()
   Type s1, s2, stmp;
   Type tmp_loglik;
   for (int i=0; i < yobs.size(); i++){
+  PARALLEL_REGION {
     if ( !glmmtmb::isNA(yobs(i)) ) {
       switch (family) {
       case gaussian_family:
@@ -347,7 +358,9 @@ Type objective_function<Type>::operator() ()
       jnll -= tmp_loglik;
     }
   }
+  }
 
+  if( isDouble<Type>::value || doPredict ) {
   // Report / ADreport
   vector<matrix<Type> > corr(terms.size());
   vector<vector<Type> > sd(terms.size());
@@ -395,6 +408,7 @@ Type objective_function<Type>::operator() ()
   // method. FIXME: May even consider reducing mu to some subset
   // before ADREPORTing.
   if (doPredict) ADREPORT(mu);
+  }
 
   return jnll;
 }
